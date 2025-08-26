@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
         - name: sentinel
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ ternary .Chart.AppVersion .Values.image.tag (eq .Values.image.tag \"\") }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 8787
@@ -33,16 +33,21 @@ spec:
             - name: {{ $k }}
               value: "{{ $v }}"
             {{- end }}
-          readinessProbe:
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          readinessProbe: {{- if .Values.readinessProbe }}
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          {{- else }}
+            httpGet:
+              path: /readyz
+              port: http
+          {{- end }}
+          livenessProbe: {{- if .Values.livenessProbe }}
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          {{- else }}
             httpGet:
               path: /healthz
               port: http
-            periodSeconds: 10
-            initialDelaySeconds: 5
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: http
-            periodSeconds: 30
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

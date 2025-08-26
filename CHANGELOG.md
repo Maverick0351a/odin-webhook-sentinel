@@ -29,8 +29,18 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 ## [1.2.1] - 2025-08-26
 
 ## [1.2.0] - 2025-08-26
+### Added
+- Helm chart hardening: securityContext, probes, optional NetworkPolicy, default image tag behavior.
+
+### Changed
+- Chart now defaults to using appVersion if image.tag omitted.
 
 ## [1.1.1] - 2025-08-26
+### Added
+- Auth bearer token enforcement for webhook endpoints (`SENTINEL_AUTH_TOKEN`).
+- Readiness endpoint `/readyz`.
+- Request ID header (`X-Request-ID`).
+- Latency histogram metric `sentinel_request_latency_seconds`.
 
 ## [1.1.0] - 2025-08-26
 ### Added
