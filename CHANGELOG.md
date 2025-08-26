@@ -26,6 +26,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [1.1.1] - 2025-08-26
+
 ## [1.1.0] - 2025-08-26
 - Placeholder for upcoming changes.
 
