@@ -1,5 +1,11 @@
 # ODIN Webhook Sentinel
 
+![CI](https://github.com/Maverick0351a/odin-webhook-sentinel/actions/workflows/ci.yml/badge.svg)
+![CodeQL](https://github.com/Maverick0351a/odin-webhook-sentinel/actions/workflows/codeql.yml/badge.svg)
+![Release](https://img.shields.io/github/v/tag/Maverick0351a/odin-webhook-sentinel?label=release)
+![License](https://img.shields.io/github/license/Maverick0351a/odin-webhook-sentinel)
+![Helm OCI](https://img.shields.io/badge/helm-oci--charts-blue)
+
 Verify inbound webhooks (HMAC/Stripe/GitHub), produce tamper-evident metadata (CID, canonical JSON),
 and optionally forward a signed ODIN envelope to your Gateway. Built with FastAPI.
 

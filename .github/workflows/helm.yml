@@ -1,0 +1,36 @@
+name: Helm Publish
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract version
+        id: meta
+        run: |
+          TAG=${GITHUB_REF##*/}
+          VERSION=${TAG#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.4
+      - name: Login to GHCR (OCI)
+        run: echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Package chart
+        run: |
+          sed -i "s/^appVersion:.*/appVersion: \"${{ steps.meta.outputs.version }}\"/" charts/sentinel/Chart.yaml
+          helm package charts/sentinel --version ${{ steps.meta.outputs.version }} --app-version ${{ steps.meta.outputs.version }}
+      - name: Push chart
+        run: |
+          helm push sentinel-${{ steps.meta.outputs.version }}.tgz oci://ghcr.io/${{ github.repository_owner }}/charts

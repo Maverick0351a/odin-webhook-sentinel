@@ -1,11 +1,11 @@
 apiVersion: v2
 name: sentinel
-version: 0.1.0
+version: 0.1.1
 appVersion: "1.0.0"
 description: ODIN Webhook Sentinel - verify & forward webhooks with cryptographic attestations
-home: https://github.com/odin-org/odin-webhook-sentinel
+home: https://github.com/Maverick0351a/odin-webhook-sentinel
 sources:
-  - https://github.com/odin-org/odin-webhook-sentinel
+  - https://github.com/Maverick0351a/odin-webhook-sentinel
 maintainers:
   - name: ODIN
     email: opensource@odin.example

@@ -68,6 +68,12 @@ jobs:
           for TAG in ${{ steps.meta.outputs.version }} ${{ steps.meta.outputs.minor }} ${{ steps.meta.outputs.major }} latest; do
             cosign sign --yes $IMAGE:$TAG
           done
+      - name: Cosign attest (provenance)
+        env:
+          COSIGN_EXPERIMENTAL: 1
+        run: |
+          IMAGE=ghcr.io/${{ github.repository }}
+          cosign attest --yes --predicate <(echo '{"buildType":"github-actions","repo":"${{ github.repository }}","ref":"${GITHUB_REF}"}') --type slsaprovenance $IMAGE:${{ steps.meta.outputs.version }}
       - name: Generate SBOM
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
