@@ -1,0 +1,26 @@
+name: Commit Lint
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install commitizen
+        run: pip install commitizen==3.28.0
+      - name: Validate commit messages
+        run: |
+          # Validate all commits in the PR range
+          git log --format=%H origin/${{ github.base_ref }}..HEAD | while read sha; do
+            echo "Checking $sha";
+            cz check --commit "$sha" || { echo "Invalid commit message: $sha"; exit 1; };
+          done

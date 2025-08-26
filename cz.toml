@@ -1,0 +1,7 @@
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "1.0.0"
+version_files = ["pyproject.toml:^version =","charts/sentinel/Chart.yaml:^appVersion:"]
+update_changelog_on_bump = false
+major_version_zero = false
+tag_format = "v$version"
