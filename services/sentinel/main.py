@@ -7,7 +7,9 @@ import logging
 from collections import defaultdict, deque, OrderedDict
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, HTTPException, Request, Response, Depends
+from fastapi.responses import JSONResponse
+import uuid
 from pydantic import BaseModel
 
 from sentinel import verify as V
@@ -47,9 +49,10 @@ class _LRUBuckets:
 _rl_buckets = None  # placeholder until Settings created
 
 try:  # optional prometheus_client
-    from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
+    from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 except Exception:  # pragma: no cover
     Counter = None  # type: ignore
+    Histogram = None  # type: ignore
 
 if Counter:  # pragma: no cover (metrics wiring itself not critical)
     try:
@@ -59,13 +62,21 @@ if Counter:  # pragma: no cover (metrics wiring itself not critical)
         METRIC_RATE_LIMITED = Counter(
             "sentinel_rate_limited_total", "Rate limited responses"
         )
+        METRIC_LATENCY = Histogram(
+            "sentinel_request_latency_seconds",
+            "Latency of webhook processing",
+            buckets=(0.01,0.025,0.05,0.1,0.25,0.5,1,2,5),
+            labelnames=("source","verified"),
+        ) if 'Histogram' in globals() else None
     except ValueError:
         # Already registered (e.g., module reload in tests)
         METRIC_REQUESTS = None
         METRIC_RATE_LIMITED = None
+        METRIC_LATENCY = None
 else:
     METRIC_REQUESTS = None
     METRIC_RATE_LIMITED = None
+    METRIC_LATENCY = None
 
 
 @app.middleware("http")
@@ -86,7 +97,23 @@ async def rate_limit_middleware(request, call_next):  # type: ignore
                 status_code=429,
             )
         bucket.append(now)
-    return await call_next(request)
+    # Add request id
+    req_id = str(uuid.uuid4())
+    request.state.request_id = req_id
+    start = time.time()
+    resp = await call_next(request)
+    duration = time.time() - start
+    try:
+        if METRIC_LATENCY and request.url.path.startswith("/hooks/"):
+            # source is last part
+            parts = request.url.path.split("/")
+            source = parts[-1] if parts else "unknown"
+            verified_label = resp.status_code == 200
+            METRIC_LATENCY.labels(source=source, verified=str(verified_label).lower()).observe(duration)
+    except Exception:
+        pass
+    resp.headers["X-Request-ID"] = req_id
+    return resp
 
 SET = Settings(
     generic_secret=os.getenv("SENTINEL_GENERIC_SECRET"),
@@ -103,6 +130,8 @@ SET = Settings(
     max_body_bytes=int(os.getenv("SENTINEL_MAX_BODY_BYTES", "2000000")),
     log_jsonl_path=os.getenv("SENTINEL_LOG_JSONL"),
     firestore_project=os.getenv("FIRESTORE_PROJECT"),
+    structured_logging=os.getenv("SENTINEL_STRUCT_LOG", "1") != "0",
+    auth_token=os.getenv("SENTINEL_AUTH_TOKEN"),
 )
 
 # now instantiate buckets with cap
@@ -118,6 +147,7 @@ class VerifyResult(BaseModel):
     cid: str | None = None
     gateway_forwarded: bool = False
     trace_id: str | None = None
+    request_id: str | None = None
 
 
 @app.get("/healthz")
@@ -142,6 +172,22 @@ def healthz():
     }
 
 
+@app.get("/readyz")
+def readyz():
+    # Basic readiness: required config validation
+    required_ok = True
+    # For now just returns ok; could add downstream checks (e.g., Firestore) later
+    return {"ok": required_ok}
+
+
+def require_auth(request: Request):
+    if SET.auth_token:
+        auth = request.headers.get("Authorization")
+        if not auth or auth != f"Bearer {SET.auth_token}":
+            raise HTTPException(status_code=401, detail="unauthorized")
+    return True
+
+
 @app.get("/.well-known/jwks.json")
 def jwks():
     if SET.odin_sender_priv_b64 and SET.odin_sender_kid:
@@ -150,7 +196,7 @@ def jwks():
 
 
 async def _verify_and_optionally_forward(
-    source: str, body: bytes, headers: dict[str, str]
+    source: str, body: bytes, headers: dict[str, str], request_id: str
 ) -> VerifyResult:
     verified = False
     reason = "not_configured"
@@ -218,7 +264,7 @@ async def _verify_and_optionally_forward(
 
     # Prepare response
     result = VerifyResult(
-        source=source, verified=verified, method=method, reason=None if verified else reason
+        source=source, verified=verified, method=method, reason=None if verified else reason, request_id=request_id
     )
     if verified:
         try:
@@ -261,10 +307,10 @@ async def _verify_and_optionally_forward(
 
 
 @app.post("/hooks/{source}")
-async def receive(source: str, request: Request):
+async def receive(source: str, request: Request, _: bool = Depends(require_auth)):
     headers = {k: v for k, v in request.headers.items()}
     body = await request.body()
-    res = await _verify_and_optionally_forward(source, body, headers)
+    res = await _verify_and_optionally_forward(source, body, headers, getattr(request.state, 'request_id', 'na'))
     code = 200 if res.verified else 400
     # Persistence (JSONL first, Firestore optional)
     try:
@@ -321,7 +367,9 @@ async def receive(source: str, request: Request):
                         "cid": res.cid,
                         "gateway_forwarded": res.gateway_forwarded,
                         "trace_id": res.trace_id,
+                        "request_id": res.request_id,
                         "status_code": code,
+                        "latency_ms": int((time.time() - start_ts) * 1000) if (start_ts := getattr(request.state,'_start_time',None)) else None,
                     }
                 )
             )

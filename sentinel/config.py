@@ -36,3 +36,6 @@ class Settings(BaseModel):
 
     # structured logging toggle
     structured_logging: bool = True  # SENTINEL_STRUCT_LOG ("0" to disable)
+
+    # simple bearer auth token for protected endpoints
+    auth_token: str | None = None  # SENTINEL_AUTH_TOKEN
