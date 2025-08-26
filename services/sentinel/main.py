@@ -62,6 +62,9 @@ if Counter:  # pragma: no cover (metrics wiring itself not critical)
         METRIC_RATE_LIMITED = Counter(
             "sentinel_rate_limited_total", "Rate limited responses"
         )
+        METRIC_VERIFICATION_FAILURES = Counter(
+            "sentinel_verification_fail_total", "Failed verification attempts", ["source", "reason"]
+        )
         METRIC_LATENCY = Histogram(
             "sentinel_request_latency_seconds",
             "Latency of webhook processing",
@@ -72,11 +75,29 @@ if Counter:  # pragma: no cover (metrics wiring itself not critical)
         # Already registered (e.g., module reload in tests)
         METRIC_REQUESTS = None
         METRIC_RATE_LIMITED = None
+        METRIC_VERIFICATION_FAILURES = None
         METRIC_LATENCY = None
 else:
     METRIC_REQUESTS = None
     METRIC_RATE_LIMITED = None
+    METRIC_VERIFICATION_FAILURES = None
     METRIC_LATENCY = None
+
+
+@app.middleware("http")
+async def body_size_limit_middleware(request: Request, call_next):  # type: ignore
+    # Fast pre-flight using Content-Length; route still enforces after reading if absent
+    if SET.max_body_bytes and request.headers.get("content-length"):
+        try:
+            if int(request.headers["content-length"]) > SET.max_body_bytes:
+                return Response(
+                    content=json.dumps({"detail": "payload too large"}),
+                    media_type="application/json",
+                    status_code=413,
+                )
+        except Exception:
+            pass
+    return await call_next(request)
 
 
 @app.middleware("http")
@@ -353,6 +374,13 @@ async def receive(source: str, request: Request, _: bool = Depends(require_auth)
     if METRIC_REQUESTS:
         try:
             METRIC_REQUESTS.labels(source=res.source, verified=str(res.verified).lower()).inc()
+        except Exception:
+            pass
+    if (not res.verified) and METRIC_VERIFICATION_FAILURES:
+        try:
+            # Limit reason cardinality by truncating long reasons
+            reason = (res.reason or "unknown")[:50]
+            METRIC_VERIFICATION_FAILURES.labels(source=res.source, reason=reason).inc()
         except Exception:
             pass
     if SET.structured_logging:
