@@ -159,7 +159,11 @@ helm upgrade --install sentinel ./charts/sentinel \
 See `CHANGELOG.md` and `SECURITY.md`.
 
 ### Terraform (ECS Fargate)
-See `deploy/terraform` for a minimal module to run on AWS ECS Fargate (pin image digest!).
+See `deploy/terraform` for a module to run on AWS ECS Fargate (pin image digest!). Features:
+- Optional Application Load Balancer + health checks
+- Target tracking autoscaling (CPU & memory)
+- CloudWatch logs
+- Toggleable ALB (`enable_alb`), scaling bounds (`autoscale_min`/`max`)
 
 ### Observability Assets
 - Prometheus alert rules: `observability/prometheus-alerts.yaml`
@@ -170,6 +174,7 @@ See `CONTRIBUTING.md` (conventional commits, release bump script).
 
 ### Supply Chain Security
 Release workflow performs: multi-tag signing, provenance attestation, SBOM generation & attestation, Trivy HIGH/CRITICAL gate.
+CI enforces minimum test coverage (>=90%).
 
 ### Signing & SBOM (optional)
 ```

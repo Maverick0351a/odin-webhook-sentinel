@@ -30,7 +30,7 @@ jobs:
           python -m ruff format --check .
       - name: Run tests
         run: |
-          pytest -q --cov=sentinel --cov=services --cov-report=term-missing --cov-report=xml
+          pytest -q --cov=sentinel --cov=services --cov-report=term-missing --cov-report=xml --cov-fail-under=90
       - name: Upload coverage xml
         uses: actions/upload-artifact@v4
         with:
