@@ -177,6 +177,68 @@ cosign sign ghcr.io/Maverick0351a/odin-webhook-sentinel:1.0.0
 syft ghcr.io/Maverick0351a/odin-webhook-sentinel:1.0.0 -o spdx-json > SBOM.spdx.json
 ```
 
+### Verify a Release (Signatures, SBOM, Provenance)
+
+You should verify what you run. Below assumes you have `cosign` (>=2.x) installed and are using keyless
+signing (Fulcio + Rekor transparency log) as produced by this repo's release workflow.
+
+1. Pull (or just reference) the image digest:
+```bash
+IMAGE=ghcr.io/Maverick0351a/odin-webhook-sentinel:1.2.1
+docker pull $IMAGE
+```
+
+2. Verify the image signature (OIDC identity + Rekor inclusion):
+```bash
+cosign verify $IMAGE \
+  --certificate-identity-regexp 'https://github.com/Maverick0351a/odin-webhook-sentinel/.github/workflows/release' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+Output should list the image digest and certificate SAN referencing the GitHub workflow.
+
+3. Fetch and verify the provenance attestation (SLSA predicate):
+```bash
+cosign verify-attestation $IMAGE \
+  --type slsaprovenance \
+  --certificate-identity-regexp 'https://github.com/Maverick0351a/odin-webhook-sentinel/.github/workflows/release' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --output-text > provenance.jsonl
+cat provenance.jsonl
+```
+Confirm fields like `repo`, `ref`, and `buildType` match expectations.
+
+4. Fetch and verify the SBOM attestation (SPDX):
+```bash
+cosign verify-attestation $IMAGE \
+  --type spdx \
+  --certificate-identity-regexp 'https://github.com/Maverick0351a/odin-webhook-sentinel/.github/workflows/release' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --output-json > sbom-att.json
+jq '.predicate.packages[0] | {name:.name, version:.versionInfo}' sbom-att.json
+```
+
+5. (Optional) Re-generate SBOM locally and diff:
+```bash
+syft $IMAGE -o spdx-json > local-sbom.json
+diff <(jq -S . sbom-att.json) <(jq -S . local-sbom.json) | head
+```
+Minor differences (ordering, generation time) are normal; large structural diffs require investigation.
+
+6. Pin by digest in manifests / Terraform / Helm values for immutability:
+```bash
+DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $IMAGE)
+echo "Pin: $DIGEST"
+```
+
+PowerShell equivalents (quick reference):
+```powershell
+$Image = 'ghcr.io/Maverick0351a/odin-webhook-sentinel:1.2.1'
+docker pull $Image
+cosign verify $Image --certificate-identity-regexp 'https://github.com/Maverick0351a/odin-webhook-sentinel/.github/workflows/release' --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+If any verification step fails, do not deploy the artifact.
+
 ---
 
 ## Makefile shortcuts
