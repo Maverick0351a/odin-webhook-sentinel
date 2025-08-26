@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "odin-webhook-sentinel"
-version = "1.4.0"
+version = "1.4.1"
 description = "Verify webhooks (HMAC/Stripe/GitHub), compute CID, optionally forward signed ODIN envelope"
 readme = "README.md"
 requires-python = ">=3.10"
