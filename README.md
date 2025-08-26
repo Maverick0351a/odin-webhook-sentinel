@@ -158,6 +158,19 @@ helm upgrade --install sentinel ./charts/sentinel \
 ### Change Log & Security
 See `CHANGELOG.md` and `SECURITY.md`.
 
+### Terraform (ECS Fargate)
+See `deploy/terraform` for a minimal module to run on AWS ECS Fargate (pin image digest!).
+
+### Observability Assets
+- Prometheus alert rules: `observability/prometheus-alerts.yaml`
+- Grafana dashboard: `observability/grafana-dashboard.json`
+
+### Contributing
+See `CONTRIBUTING.md` (conventional commits, release bump script).
+
+### Supply Chain Security
+Release workflow performs: multi-tag signing, provenance attestation, SBOM generation & attestation, Trivy HIGH/CRITICAL gate.
+
 ### Signing & SBOM (optional)
 ```
 cosign sign ghcr.io/Maverick0351a/odin-webhook-sentinel:1.0.0

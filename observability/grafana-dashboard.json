@@ -1,0 +1,12 @@
+{
+  "title": "ODIN Webhook Sentinel",
+  "panels": [
+    {"type": "stat", "title": "Total Requests", "targets": [{"expr": "sum(sentinel_requests_total)"}]},
+    {"type": "stat", "title": "Fail % (5m)", "targets": [{"expr": "(sum(increase(sentinel_requests_total{status=\"fail\"}[5m]))/sum(increase(sentinel_requests_total[5m])))*100"}]},
+    {"type": "graph", "title": "Requests by Status", "targets": [{"expr": "sum by (status) (rate(sentinel_requests_total[5m]))"}]},
+    {"type": "graph", "title": "Rate Limited", "targets": [{"expr": "rate(sentinel_rate_limited_total[5m])"}]},
+    {"type": "graph", "title": "Forward Outcomes", "targets": [{"expr": "sum by (result) (rate(sentinel_forward_total[5m]))"}]}
+  ],
+  "schemaVersion": 38,
+  "version": 1
+}
