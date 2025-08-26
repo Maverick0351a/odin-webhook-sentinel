@@ -78,18 +78,34 @@ jobs:
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
           syft ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }} -o spdx-json > SBOM.spdx.json
+      - name: Cosign attest (SBOM)
+        env:
+          COSIGN_EXPERIMENTAL: 1
+        run: |
+          IMAGE=ghcr.io/${{ github.repository }}
+          cosign attest --yes --predicate SBOM.spdx.json --type spdx $IMAGE:${{ steps.meta.outputs.version }}
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v4
         with:
           name: sbom
           path: SBOM.spdx.json
+      - name: Extract release notes
+        id: notes
+        run: |
+          V=${{ steps.meta.outputs.version }}
+          awk "/^## \[$V\]/,/^## \[/" CHANGELOG.md | sed '$d' > RELEASE_NOTES.md || awk "/^## \[$V\]/,/^$/" CHANGELOG.md > RELEASE_NOTES.md
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          cat RELEASE_NOTES.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.meta.outputs.version }}
           name: v${{ steps.meta.outputs.version }}
           body: |
-            See CHANGELOG.md for details.
+            ${{ steps.notes.outputs.notes }}
+
             Image Digest: ${{ steps.meta.outputs.digest }}
+            SBOM attached as artifact and attested via cosign (type=spdx).
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
