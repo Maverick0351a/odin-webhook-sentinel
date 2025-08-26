@@ -1,0 +1,44 @@
+name: Auto Version & Tag
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  semver:
+    runs-on: ubuntu-latest
+    if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Determine next version
+        id: next
+        run: |
+          pip install --upgrade pip
+          python scripts/determine_next_version.py > .next_version
+          echo "version=$(cat .next_version)" >> $GITHUB_OUTPUT
+      - name: Bump version files
+        run: |
+          python scripts/bump_version.py ${{ steps.next.outputs.version }}
+      - name: Commit & tag
+        env:
+          VERSION: ${{ steps.next.outputs.version }}
+        run: |
+          git config user.name 'github-actions'
+          git config user.email 'github-actions@users.noreply.github.com'
+          git add pyproject.toml CHANGELOG.md charts/sentinel/Chart.yaml || true
+          if git diff --cached --quiet; then
+            echo "No version changes to commit"; exit 0; fi
+          git commit -m "chore(release): v$VERSION"
+          git tag v$VERSION
+          git push origin HEAD:main --tags
+      - name: Display bumped version
+        run: echo "Released version ${{ steps.next.outputs.version }}"
