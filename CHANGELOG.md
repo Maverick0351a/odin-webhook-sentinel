@@ -29,5 +29,24 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 ## [1.1.1] - 2025-08-26
 
 ## [1.1.0] - 2025-08-26
-- Placeholder for upcoming changes.
+### Added
+- Terraform ECS Fargate deployment module (`deploy/terraform`).
+- Observability assets: Prometheus alert rules & Grafana dashboard.
+- Automated semantic versioning workflow (auto-version) with conventional commits parsing.
+- Commit message linting (Commitizen pre-commit + PR workflow).
+- Version bump script enhanced to sync Helm chart (`scripts/bump_version.py`).
+
+### Security / Supply Chain
+- Container signing (cosign keyless) plus SBOM & provenance attestations.
+- Trivy vulnerability gate (fail on HIGH/CRITICAL) in release pipeline.
+
+### CI/CD
+- Multi-tag container publishing (major, minor, latest).
+- Automated release notes extraction from CHANGELOG.
+
+### Documentation
+- CONTRIBUTING guide, supply-chain security documentation additions.
+
+### Internal
+- Rate limiter & metrics previously added now documented; groundwork for future enhancements.
 
