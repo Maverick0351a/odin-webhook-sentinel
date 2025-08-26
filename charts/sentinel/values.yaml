@@ -1,0 +1,45 @@
+image:
+  repository: ghcr.io/odin-org/odin-webhook-sentinel
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 128Mi
+
+env: {}
+  # SENTINEL_GENERIC_SECRET: "changeme"
+  # SENTINEL_STRIPE_SECRET: "sk_live_xxx"
+  # SENTINEL_STRIPE_TOLERANCE: "300"
+  # SENTINEL_RATE_LIMIT: "60"
+  # SENTINEL_RATE_WINDOW: "60"
+  # SENTINEL_RATE_BUCKET_CAP: "10000"
+  # SENTINEL_STRUCT_LOG: "1"
+  # ODIN_GATEWAY_URL: "https://gateway.example/v1/envelopes"
+  # ODIN_SENDER_PRIV_B64: "base64seed=="
+  # ODIN_SENDER_KID: "gateway-sender-1"
+
+podAnnotations: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    labels: {}

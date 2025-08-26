@@ -1,0 +1,13 @@
+.env.example
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.DS_Store
+.env
+dist/
+build/
+*.egg-info/
+.coverage
+htmlcov/
+logs/
