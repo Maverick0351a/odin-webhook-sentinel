@@ -1,5 +1,5 @@
 image:
-  repository: ghcr.io/odin-org/odin-webhook-sentinel
+  repository: ghcr.io/Maverick0351a/odin-webhook-sentinel
   tag: "1.0.0"
   pullPolicy: IfNotPresent
 

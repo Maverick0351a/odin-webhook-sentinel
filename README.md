@@ -132,7 +132,7 @@ After tagging (e.g. `git tag v1.0.0 && git push --tags`), the release workflow b
 
 Pin by digest in production:
 ```
-docker pull ghcr.io/odin-org/odin-webhook-sentinel@sha256:<digest>
+docker pull ghcr.io/Maverick0351a/odin-webhook-sentinel@sha256:<digest>
 ```
 
 ### Helm (Kubernetes)
@@ -154,8 +154,8 @@ See `CHANGELOG.md` and `SECURITY.md`.
 
 ### Signing & SBOM (optional)
 ```
-cosign sign ghcr.io/odin-org/odin-webhook-sentinel:1.0.0
-syft ghcr.io/odin-org/odin-webhook-sentinel:1.0.0 -o spdx-json > SBOM.spdx.json
+cosign sign ghcr.io/Maverick0351a/odin-webhook-sentinel:1.0.0
+syft ghcr.io/Maverick0351a/odin-webhook-sentinel:1.0.0 -o spdx-json > SBOM.spdx.json
 ```
 
 ---
