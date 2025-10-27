@@ -90,7 +90,7 @@ jobs:
           IMAGE=ghcr.io/${{ github.repository }}
           cosign attest --yes --predicate SBOM.spdx.json --type spdx $IMAGE:${{ steps.meta.outputs.version }}
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: sbom
           path: SBOM.spdx.json
